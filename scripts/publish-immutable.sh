@@ -26,11 +26,11 @@ build_image="${image}:${build_tag}"
 
 docker tag runtime-python:3.14-local "$runtime_image"
 docker tag runtime-python:3.14-build-local "$build_image"
-docker push "$runtime_image" | tee "$runtime_log"
-docker push "$build_image" | tee "$build_log"
+docker push "$runtime_image" 2>&1 | tee "$runtime_log"
+docker push "$build_image" 2>&1 | tee "$build_log"
 
-runtime_digest=$(awk '$1 == "digest:" {print $2}' "$runtime_log" | tail -n 1)
-build_digest=$(awk '$1 == "digest:" {print $2}' "$build_log" | tail -n 1)
+runtime_digest=$(python3 "${repo_root}/scripts/push_digest.py" "$runtime_log")
+build_digest=$(python3 "${repo_root}/scripts/push_digest.py" "$build_log")
 [[ "$runtime_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
     echo "publish failed: could not resolve runtime digest" >&2
     exit 1
