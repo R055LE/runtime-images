@@ -14,7 +14,10 @@ promote() {
     local expected_digest=$3
     local actual_digest
 
-    docker buildx imagetools create --tag "$rolling_ref" "$source_ref"
+    docker buildx imagetools create \
+        --prefer-index=false \
+        --tag "$rolling_ref" \
+        "$source_ref"
     actual_digest=$(docker buildx imagetools inspect "$rolling_ref" \
         | awk '$1 == "Digest:" {print $2; exit}')
     [ "$actual_digest" = "$expected_digest" ] || {
