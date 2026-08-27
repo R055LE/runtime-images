@@ -1,0 +1,32 @@
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - build-base
+    - busybox
+    - ca-certificates-bundle
+    - glibc-locale-posix
+    - python-3.14
+    - python-3.14-dev
+    - uv
+
+entrypoint:
+  command: /usr/bin/python
+
+environment:
+  LANG: C.UTF-8
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  PYTHONUNBUFFERED: "1"
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+annotations:
+  org.opencontainers.image.title: R055LE Python build image
+  org.opencontainers.image.description: ABI-matched build companion for the R055LE Python runtime
+  org.opencontainers.image.source: https://github.com/R055LE/runtime-images
+  org.opencontainers.image.licenses: MIT
+  io.r055le.runtime.variant: build
+
+archs:
+  - amd64

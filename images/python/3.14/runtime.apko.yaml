@@ -1,0 +1,38 @@
+contents:
+  repositories:
+    - https://packages.wolfi.dev/os
+  keyring:
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:
+    - ca-certificates-bundle
+    - glibc-locale-posix
+    - python-3.14
+
+accounts:
+  groups:
+    - groupname: nonroot
+      gid: 65532
+  users:
+    - username: nonroot
+      uid: 65532
+      gid: 65532
+  run-as: nonroot
+
+entrypoint:
+  command: /usr/bin/python
+
+environment:
+  LANG: C.UTF-8
+  PATH: /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/sbin:/sbin:/bin
+  PYTHONUNBUFFERED: "1"
+  SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+
+annotations:
+  org.opencontainers.image.title: R055LE Python runtime
+  org.opencontainers.image.description: Minimal Python runtime assembled from signed Wolfi packages
+  org.opencontainers.image.source: https://github.com/R055LE/runtime-images
+  org.opencontainers.image.licenses: MIT
+  io.r055le.runtime.variant: runtime
+
+archs:
+  - amd64

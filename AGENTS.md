@@ -1,39 +1,46 @@
-# <repo name>
+# runtime-images
 
-<!-- One or two sentences on what this is, then delete this comment. Keep this
-file short. It's for the things someone would otherwise have to break to
-discover, not a second README. -->
+Production runtime image composition for the R055LE fleet. Read
+[runbook decision 0027](https://github.com/R055LE/runbook/blob/main/decisions/0027-own-runtime-image-composition.md)
+before changing the image or release contract.
+
+## Quick checks
+
+```bash
+make unit
+make build
+make verify
+make scan
+make ci
+```
 
 ## Fleet rules that govern this repo
 
-Decisions live in
-[`R055LE/runbook/decisions`](https://github.com/R055LE/runbook/tree/main/decisions),
-indexed in that directory's README. Read the one covering what you're about to
-change. Most are asserted by `fleet-audit.py`, so breaking one shows up as drift
-on the Monday run. The index marks the ones that aren't, which are the ones
-where reversing the decision looks like tidying up.
+Descriptions and topics come from `R055LE/runbook/catalog/fleet.yaml`. Routine
+dependency automation is Dependabot only. GitHub Action and Docker references
+stay pinned by digest or full commit SHA.
 
-The two that catch people out:
-
-- **Description and topics are generated** from `catalog/fleet.yaml` in
-  `runbook` ([0002](https://github.com/R055LE/runbook/blob/main/decisions/0002-centralise-catalog-authoring.md)).
-  Setting them by hand gets overwritten.
-- **Routine dependency updates are opt-in**
-  ([0009](https://github.com/R055LE/runbook/blob/main/decisions/0009-dependabot-as-the-only-dependency-bot.md)).
-  This repo ships a `.github/dependabot.yml` because new repos start covered.
-  Delete it if the PR traffic isn't worth it, that's a supported choice. Don't
-  add a second dependency bot.
-
-## Working here
-
-One issue, one branch, one worktree under `.claude/worktrees/<slug>` (already
-gitignored), one PR, then prune. `scripts/pre-commit-worktree-guard` refuses
-commits from the canonical clone, but only once it's installed, and git never
-copies hooks on clone. See step 1 of the setup in the README.
+Work in one branch and one worktree under `.claude/worktrees/<slug>`, land one
+pull request, then prune the worktree. Install
+`scripts/pre-commit-worktree-guard` in the repository hook directory after a
+fresh clone.
 
 ## Invariants
 
-<!-- Delete this section if there aren't any yet. Add things a change would
-silently break: assumptions the tests don't cover, gates that don't run on PRs,
-conventions nothing enforces. If a rule defends itself, it doesn't need to be
-here. If breaking it leaves everything green, it does. -->
+- A runtime and build image form one release set. Shared package versions and
+  checksums must match exactly.
+- Production consumers never deploy the build image.
+- The release workflow publishes the already-tested local images. It does not
+  rebuild between scanning and pushing.
+- Immutable tags move only by creating a new release ID. Rolling tags are
+  discovery pointers and consumers do not pin them.
+- Release identity covers the exact package sets, image definitions, pinned
+  apko tool, and deterministic build date.
+- HIGH and CRITICAL findings are always reported. No `.trivyignore`,
+  `ignore-unfixed`, or equivalent suppression belongs here.
+- Known-finding metadata contains only image-level evidence. Application
+  reachability claims do not belong in a shared runtime.
+- Generated package locks are retained as release assets, not committed as
+  routine source churn.
+- A daily no-op still resolves, builds, tests, and scans before checking whether
+  the release already exists.

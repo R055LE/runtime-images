@@ -1,56 +1,78 @@
-<!-- Delete everything down to the line marked END SETUP once you've done it. -->
+# runtime-images
 
-# New repo setup
+Production language runtime images for the R055LE fleet. This repository owns
+the composition, validation, publication, and rebuild cadence. It does not
+pretend to remove every dependency: Python, OpenSSL, Wolfi, apko, GitHub
+Actions, and GHCR remain explicit trust boundaries.
 
-You made this from `HalcyonOps/repo-template`. Four steps and the fleet audit
-goes quiet. Skipping them is how repos drift, which is the whole reason this
-template exists.
+The first release family is Python 3.14 on amd64:
 
-1. **Install the commit guard.** It's not automatic, git never copies hooks.
+| Tag | Purpose | Contract |
+| --- | --- | --- |
+| `3.14` | Production runtime discovery | Non-root, no shell, package manager, pip, or compiler |
+| `3.14-build` | ABI-matched dependency builder | Root build environment with `uv` and a compiler |
 
-   ```bash
-   cp scripts/pre-commit-worktree-guard .git/hooks/pre-commit
-   ```
+The build image is never a production runtime. Rolling tags are for discovery.
+Consumers pin both variants by digest and verify the producing workflow before
+building.
 
-2. **Check the license.** MIT is here because most code is meant to be reused.
-   Swap it if that's not this repo (see
-   [ADR-0006](https://github.com/R055LE/runbook/blob/main/decisions/0006-license-by-reuse-intent.md)):
-   CC-BY-4.0 for citable reference content, delete it entirely for original
-   creative IP where all-rights-reserved is the point. If you delete it and the
-   repo is public, add the repo to `NO_LICENSE_BY_DESIGN` in `fleet-audit.py`
-   with a reason.
+## Use an image
 
-3. **Add the component to the catalog.** Description and topics are generated,
-   so don't set them by hand. In `R055LE/runbook`, add an entry to
-   `catalog/fleet.yaml` and run:
-
-   ```bash
-   ./scripts/catalog.py apply --only <owner>/<repo>
-   ```
-
-4. **Apply the repo settings.** Everything the audit checks that isn't a file:
-
-   ```bash
-   ./scripts/bootstrap-repo.sh <owner>/<repo>      # in R055LE/runbook
-   ./scripts/fleet-audit.py --only <owner>/<repo>  # should print nothing
-   ```
-
-<!-- END SETUP -->
-
-# <repo name>
-
-One or two sentences on what this is and who it's for. The GitHub description
-is generated from the catalog, so this is the place to actually explain it.
-
-## Usage
+Choose the immutable digest from a GitHub release, then verify its origin and
+attestations:
 
 ```bash
+image='ghcr.io/r055le/runtime-python@sha256:<digest>'
+identity='https://github.com/R055LE/runtime-images/.github/workflows/release.yml@refs/heads/main'
+
+cosign verify \
+  --certificate-identity "$identity" \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  "$image"
+gh attestation verify "oci://$image" --repo R055LE/runtime-images
 ```
 
-## Development
+Use the matching runtime and build records from one release manifest. Do not
+combine independently selected tags.
+
+## Develop
+
+Requirements are Docker, Python 3, and Trivy. The apko tool itself runs from a
+digest-pinned container.
 
 ```bash
+make unit    # policy and mutation tests, no Docker
+make build   # resolve locks, build images, and load them locally
+make verify  # runtime and native-extension build contracts
+make scan    # exact Trivy reports and the fleet vulnerability gate
+make ci      # the complete validation path
 ```
+
+`make ci` scans the exact local images later pushed by the release workflow.
+No scanner finding is suppressed. HIGH and CRITICAL findings are recorded in
+[`docs/known-findings.md`](docs/known-findings.md) and evaluated using CISA KEV,
+EPSS, fix age, and evidence-review age. Missing evidence fails closed.
+
+## Release contract
+
+The release workflow runs daily, after relevant changes reach `main`, and on
+manual dispatch. It resolves signed Wolfi packages, checks that shared packages
+match exactly, builds both variants, exercises the contracts, and runs the risk
+gate. It then publishes immutable image tags, signs their digests, attaches
+provenance and SBOM attestations, moves the rolling discovery tags, and creates
+a GitHub release containing:
+
+- both exact package locks
+- both SPDX SBOMs and Trivy reports
+- full package inventories and the delta from the prior release
+- source revision, artifact hashes, and immutable image digests
+
+An unchanged release is still rebuilt and scanned against current vulnerability
+data before it becomes a no-op. A failure leaves the last verified release in
+place and opens or updates one issue.
+
+The boundary and its tradeoffs are recorded in
+[runbook decision 0027](https://github.com/R055LE/runbook/blob/main/decisions/0027-own-runtime-image-composition.md).
 
 ## License
 
