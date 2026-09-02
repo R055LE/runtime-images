@@ -1,3 +1,3 @@
 # Dependabot tracks this digest. The tag is only a readable release channel;
 # builds execute the immutable digest.
-FROM cgr.dev/chainguard/apko:latest@sha256:785d310a63ecfc5d0dafe93a8178c99078f84bb3a26705d78418e81275547c9b
+FROM cgr.dev/chainguard/apko:latest@sha256:a30a29fa44ea92ab0d8b0320a30d6d76969852770a9e525b2b807e9d4586a6ab
